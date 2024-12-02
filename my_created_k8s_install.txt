@@ -1,0 +1,79 @@
+apt-get update -y
+apt-get install -y apt-transport-https
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+deb https://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+apt-get update -y
+
+
+[root@kworker2 ~]# cat /etc/yum.repos.d/docker-ce.repo
+[docker-ce-stable]
+name=Docker VE stable - $basearch
+baseurl=https://download.docker.com/linux/centos/7/$basearch/stable
+enabled=1
+gpgcheck=1
+gpgkey=https://download.docker.com/linux/centos/gpg
+[root@kworker2 ~]#
+
+
+
+yum install -y kubelet kubeadm  kubectl
+
+containerd.io.x86_64
+
+cat <<EOF |sudo tee /etc/modules-load.d/continerd.conf
+overlay
+br_netfilter
+EOF
+
+modprobe overlay
+modprobe br_netfilter
+
+cat << EOF |sudo tee /etc/sysctl.d/99-kubernetes-cri.conf
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+EOF
+
+
+sysctl --system
+
+
+mkdir -p /etc/containerd
+containerd config default|sudo tee /etc/containerd/config.toml
+systemctl restart containerd
+
+
+systemctl daemon-reload
+systemctl start kubelet
+systemctl enable kubelet.service
+
+
+systemctl status kubelet
+
+
+
++++++++++++++++++++++++++++++master only command+++++++++++++++
+
+
+from root
+
+kubeadm init --apiserver-advertise-address=172.16.16.100 --pod-network-cidr=10.244.0.0/16 >> /root/kubeinit.log
+
+
+from ubuntu user
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
++++++++++++++++++++++++worker++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+
+
